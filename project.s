@@ -56,6 +56,8 @@
     .eqv ROW_SHIFT 9                    # Number of right shifts to determine VGA row
     .eqv LAST_COLUMN 76                 # 79 - last two columns don't show on screen
     .eqv LAST_ROW 29                    # 31 - last two rows don't show on screen
+    .eqv INIT_ROW_LOC 14
+    .eqv INIT_COL_LOC 38
     .eqv ADDRESSES_PER_ROW 512
     .eqv NEG_ADDRESSES_PER_ROW -512
     .eqv STARTING_LOC 0x8204            # The VGA memory address wher ethe 'starting' character is located.
@@ -64,10 +66,10 @@
                                         # 64, 27 or 0x8000+64*4+27*512=0xb700
     .eqv BLOCK_LOC 0x987C               # The VGA memory address where the 'block character' is located
                                         # 31, 12 or 0x8000+31*4+12*512=0x987C
-    .eqv SEGMENT_TIMER_INTERVAL 100     # This constant represents the number of timer ticks (each 1 ms)
+    .eqv SEGMENT_TIMER_INTERVAL 250     # This constant represents the number of timer ticks (each 1 ms)
                                         # that are needed before incrementing the timer value on the seven
                                         # segment display. With a value of 100, the timer will increment
-                                        # every 100 ms (or 10 times a second).
+                                        # every 250 ms (or 4 times a second).
 
     .eqv INIT_FASTEST_SCORE 0xffff      # Fastest score initialized to 0xffff (should get lower with better play)
 
@@ -90,6 +92,33 @@ main:
  
     # Prepare VGA base address
     li s0, 0x8000
+    
+    #initialize pointer to array of snake locations in data memory
+    add s1, gp, x0
+    
+    #initialize counter of how many items are in array s1
+    addi s2, x0, x0
+    
+    #initialize the first location of the snake head
+    
+    #This puts the offsets for the row and the column for the initial vga location
+    #into t1 and t0 respectively
+    addi t0, x0, INIT_COL_LOC
+    addi t1, x0, INIT_ROW_LOC
+    slli t0, t0, COLUMN_SHIFT
+    slli t1, t1, ROW_SHIFT
+    
+    # put the inital VGA location of snake head into t2 
+    add t2, s0, x0
+    add t2, t2, t1
+    add t2, t2, t0
+    
+    # Now store the word in the offset of our
+    add t3, x0, x0
+    addi t3, t3, ARRAY_OFFSET
+    mul t4, s2, t3
+    sw t2, t4(s1)
+    addi s2, s2, 1 
 
     # Call main program procedure
     jal MOVE_CHAR_GAME
