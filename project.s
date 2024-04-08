@@ -114,22 +114,30 @@ GENERATE_APPLE:
     xor t6, t6, t6
 
     # Generate random row and column for apple location
-    li t0, 0x8000  # Starting address of VGA memory
+    li t3, 0x8000  # Starting address of VGA memory
 
-    # Generate random row
-    jalr ra, GENERATE_RANDOM_ROW # ra is the return address
+    # Load the address of GENERATE_RANDOM_ROW into a register
+    lui t0, %hi(GENERATE_RANDOM_ROW)
+    addi t0, t0, %lo(GENERATE_RANDOM_ROW)
+
+    # Jump to GENERATE_RANDOM_ROW using jalr
+    jalr ra, t0, 0              # ra is the return address
     add t1, x0, a0              # Store random row in t1
     slli t1, t1, ROW_SHIFT      # Shift row to correct location in VGA memory
-    add t0, t0, t1              # Add row to VGA memory address
+    add t3, t3, t1              # Add row to VGA memory address
 
     # Generate random column
-    jalr ra, GENERATE_RANDOM_COLUMN # ra is the return address
+    xor t0, t0, t0              # Clear t0
+    lui t0, %hi(GENERATE_RANDOM_COLUMN) # Load the address of GENERATE_RANDOM_COLUMN into a register
+    addi t0, t0, %lo(GENERATE_RANDOM_COLUMN) # Add the offset of GENERATE_RANDOM_COLUMN to the address
+
+    jalr ra, t0, 0              # ra is the return address
     add t1, x0, a0              # Store random column in t1
     slli t1, t1, COLUMN_SHIFT   # Shift column to correct location in VGA memory
-    add t0, t0, t1              # Add column to VGA memory address
+    add t3, t3, t1              # Add column to VGA memory address
 
     # Store apple VGA Location in s3
-    add s3, x0, t0
+    add s3, x0, t3
 
 INITIALIZE_SNAKE:
     #initialize the first location of the snake head
