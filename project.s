@@ -24,7 +24,7 @@
 
 .globl  main
 
-.section .text
+.text
 
 
 # I/O address offset constants
@@ -100,11 +100,9 @@ main:
     add s1, gp, x0
     
     #initialize counter of how many items are in array s1
-    addi s2, x0, x0
+    addi s2, x0, 0
     
 GENERATE_APPLE:
-    #initialize the first apple location
-    addi s3, x0, 0x8204
 
     #clear all temporary registers
     xor t0, t0, t0
@@ -148,11 +146,12 @@ INITIALIZE_SNAKE:
     add t2, t2, t0
     
     # Now store the word in the offset of our
-    add t3, x0, x0
-    addi t3, t3, ARRAY_OFFSET
-    mul t4, s2, t3
-    sw t2, t4(s1)
-    addi s2, s2, 1 
+    add t3, x0, x0          # t3 is the offset of the array location where the snake head will be stored
+    addi t3, t3, ARRAY_OFFSET# t3 now holds the offset of the array location where the snake head will be stored
+    mul t4, s2, t3          # t4 now holds the offset of the array location where the snake head will be stored
+    add s1, s1, t4          # s1 now points to the location in the array where the snake head is stored
+    sw t2, 0(s1)            # store the VGA location of the snake head in the array
+    addi s2, s2, 1          # increment the number of items in the array
 
     # Call main program procedure
     jal MOVE_CHAR_GAME
