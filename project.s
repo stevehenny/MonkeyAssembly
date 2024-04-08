@@ -24,7 +24,7 @@
 
 .globl  main
 
-.text
+.section .text
 
 
 # I/O address offset constants
@@ -54,10 +54,13 @@
     .eqv COLUMN_SHIFT 2                 # Number of right shifts to determine VGA column
     .eqv ROW_MASK 0x3e00                # Mask for the bits in the VGA address for the row
     .eqv ROW_SHIFT 9                    # Number of right shifts to determine VGA row
-    .eqv LAST_COLUMN 76                 # 79 - last two columns don't show on screen
-    .eqv LAST_ROW 29                    # 31 - last two rows don't show on screen
+    .eqv FIRST_COLUMN 3                 # 3 - snake can't go past this column
+    .eqv FIRST_ROW 4                    # 4 - snake can't go past this row
+    .eqv LAST_COLUMN 76                 # 76 - snake can't go past this column
+    .eqv LAST_ROW 25                    # 25 - snake can't go past this row
     .eqv INIT_ROW_LOC 14
     .eqv INIT_COL_LOC 38
+    .eqv ARRAY_OFFSET 0x4               # Offset for the array of snake locations
     .eqv ADDRESSES_PER_ROW 512
     .eqv NEG_ADDRESSES_PER_ROW -512
     .eqv STARTING_LOC 0x8204            # The VGA memory address wher ethe 'starting' character is located.
@@ -99,8 +102,39 @@ main:
     #initialize counter of how many items are in array s1
     addi s2, x0, x0
     
+GENERATE_APPLE:
+    #initialize the first apple location
+    addi s3, x0, 0x8204
+
+    #clear all temporary registers
+    xor t0, t0, t0
+    xor t1, t1, t1
+    xor t2, t2, t2
+    xor t3, t3, t3
+    xor t4, t4, t4
+    xor t5, t5, t5
+    xor t6, t6, t6
+
+    # Generate random row and column for apple location
+    li t0, 0x8000  # Starting address of VGA memory
+
+    # Generate random row
+    jalr ra, GENERATE_RANDOM_ROW # ra is the return address
+    add t1, x0, a0              # Store random row in t1
+    slli t1, t1, ROW_SHIFT      # Shift row to correct location in VGA memory
+    add t0, t0, t1              # Add row to VGA memory address
+
+    # Generate random column
+    jalr ra, GENERATE_RANDOM_COLUMN # ra is the return address
+    add t1, x0, a0              # Store random column in t1
+    slli t1, t1, COLUMN_SHIFT   # Shift column to correct location in VGA memory
+    add t0, t0, t1              # Add column to VGA memory address
+
+    # Store apple VGA Location in s3
+    add s3, x0, t0
+
+INITIALIZE_SNAKE:
     #initialize the first location of the snake head
-    
     #This puts the offsets for the row and the column for the initial vga location
     #into t1 and t0 respectively
     addi t0, x0, INIT_COL_LOC
@@ -126,6 +160,22 @@ main:
     # End in infinite loop (should never get here)
 END_MAIN:
     j END_MAIN
+
+GENERATE_RANDOM_ROW:
+    # Generate a random number between 5 and 32
+    li a1, FIRST_ROW    # Lower bound (inclusive)
+    li a2, LAST_ROW   # Upper bound (inclusive)
+    li a7, 0x12 # Random number generation code with bounds
+    ecall
+    ret
+
+GENERATE_RANDOM_COLUMN:
+    # Generate a random number between 3 and 76
+    li a1, FIRST_COLUMN    # Lower bound (inclusive)
+    li a2, LAST_COLUMN   # Upper bound (inclusive)
+    li a7, 0x12 # Random number generation code with bounds
+    ecall
+    ret
 
 MOVE_CHAR_GAME:
     
