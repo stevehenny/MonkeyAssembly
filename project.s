@@ -43,13 +43,16 @@
     .eqv BUTTON_U_MASK 0x10
 
 # Game specific constants
-    .eqv CHAR_A 0x41                    # ASCII 'A'
-    .eqv CHAR_A_RED 0x0fff00C1          # 'A' character with red foreground, black background
-    .eqv CHAR_C 0x43                    # ASCII 'C'
-    .eqv CHAR_C_YELLOW 0x00fff0C3       # 'C' character with yellow foreground, black background
-    .eqv CHAR_Z 0x5A                    # ASCII 'Z'
-    .eqv CHAR_Z_MAGENTA 0x0f0f0fDA      # 'Z' character with magenta foreground, black background
-    .eqv CHAR_SPACE 0x20                # ASCII ' '
+    .eqv CHAR_SNAKE 0x0000f006          # Modified ASCII character that is our snake with black background and green foreground
+    .eqv CHAR_BANANA 0x000ff005         # Modified ASCII character that is our banana with black background and yellow foreground
+    .eqv CHAR_G_RED 0x000f0047		# Modified ASCII 'G' with black background and red foreground
+    .eqv CHAR_A_RED 0x000f0047		# Modified ASCII 'A' with black background and red foreground
+    .eqv CHAR_M_RED 0x000f0047		# Modified ASCII 'M' with black background and red foreground
+    .eqv CHAR_E_RED 0x000f0047		# Modified ASCII 'E' with black background and red foreground
+    .eqv CHAR_O_RED 0x000f0047		# Modified ASCII 'O' with black background and red foreground
+    .eqv CHAR_V_RED 0x000f0047		# Modified ASCII 'V' with black background and red foreground
+    .eqv CHAR_R_RED 0x000f0047		# Modified ASCII 'R' with black background and red foreground
+    .eqv CHAR_SPACE 0x000f0020          # Modified ASCII ' ' with black background and red foreground
     .eqv COLUMN_MASK 0x1fc              # Mask for the bits in the VGA address for the column
     .eqv COLUMN_SHIFT 2                 # Number of right shifts to determine VGA column
     .eqv ROW_MASK 0x3e00                # Mask for the bits in the VGA address for the row
