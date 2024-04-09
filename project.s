@@ -101,6 +101,7 @@ main:
     
     #initialize counter of how many items are in array s1
     addi s2, x0, 0
+
     
 GENERATE_APPLE:
 
