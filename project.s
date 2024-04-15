@@ -69,6 +69,8 @@
     .eqv LAST_ROW 25                    # 25 - monkey can't go past this row
     .eqv INIT_ROW_LOC 14
     .eqv INIT_COL_LOC 38
+    .eqv INIT_BANANA_ROW 13
+    .eqv INIT_BANANA_COL 38
     .eqv ARRAY_OFFSET 0x4               
     .eqv ADDRESSES_PER_ROW 512
     .eqv NEG_ADDRESSES_PER_ROW -512
@@ -76,7 +78,7 @@
                                         # 1,2 or 0x8000+1*4+2*512=0x8204
     .eqv ENDING_LOC 0xb700              # The VGA memory address where the 'ending character' is located
                                         # 64, 27 or 0x8000+64*4+27*512=0xb700
-    .eqv BLOCK_LOC 0x987C               # The VGA memory address where the 'block character' is located
+    .eqv BANANA_LOC 0x9880               # The VGA memory address where the 'block character' is located
                                         # 31, 12 or 0x8000+31*4+12*512=0x987C
     .eqv SEGMENT_TIMER_INTERVAL 1000     # This constant represents the number of timer ticks (each 1 ms)
                                         # that are needed before incrementing the timer value on the seven
@@ -116,7 +118,7 @@ main:
     #initialize pointer to array of snake locations in data memory
     add s1, gp, x0
     
-    #initialize counter of how many items are in array s1
+    #initialize counter for bananas
     addi s2, x0, 0
     
     #intialize seven segment display with all 0s
@@ -139,28 +141,11 @@ GENERATE_INITIAL_BANANA:
     # Generate random row and column for apple location
     li t3, 0x8000  # Starting address of VGA memory
 
-    # Load the address of GENERATE_RANDOM_ROW into a register
-    lui t0, %hi(GENERATE_RANDOM_ROW)
-    addi t0, t0, %lo(GENERATE_RANDOM_ROW)
-
-    # Jump to GENERATE_RANDOM_ROW using jalr
-    jalr ra, t0, 0              # ra is the return address
-    add t1, x0, a0              # Store random row in t1
-    slli t1, t1, ROW_SHIFT      # Shift row to correct location in VGA memory
-    add t3, t3, t1              # Add row to VGA memory address
-
-    # Generate random column
-    xor t0, t0, t0              # Clear t0
-    lui t0, %hi(GENERATE_RANDOM_COLUMN) # Load the address of GENERATE_RANDOM_COLUMN into a register
-    addi t0, t0, %lo(GENERATE_RANDOM_COLUMN) # Add the offset of GENERATE_RANDOM_COLUMN to the address
-
-    jalr ra, t0, 0              # ra is the return address
-    add t1, x0, a0              # Store random column in t1
-    slli t1, t1, COLUMN_SHIFT   # Shift column to correct location in VGA memory
-    add t3, t3, t1              # Add column to VGA memory address
-
+    
     # Store banana VGA Location in s3
-    add s3, x0, t3
+    li s3, BANANA_LOC
+    li t4, CHAR_BANANA
+    sw t4, 0(s3)
 
 INITIALIZE_MONKEY_LOC:
     #initialize the first location of the monkey
@@ -217,9 +202,13 @@ INIT_MONKEY:
     lw t1, 0(t0)
     srli t1, t1, 8
     sw t1, CHAR_COLOR_OFFSET(tp) #writes new color value
+
     
 RESTART:
     li a0, STARTING_LOC #place the monkey in starting location
+    lw t1, 0(t0)
+    srli t1, t1, 8
+    sw t1, CHAR_COLOR_OFFSET(tp) #writes new color value
     jal MOVE_CHAR 
     
 NO_BUTTON_START:
@@ -250,7 +239,8 @@ PROC_BUTTONS:
     #jal move char
     jal MOVE_CHAR
     
-    #beq s3, a0, ADD_POINT
+    #if monkey is on banana branch to add point
+    beq s3, a0, ADD_POINT
     
 
 CONTINUE:
@@ -265,6 +255,24 @@ CONTINUE_BTN:
     beq x0, t0, CONTINUE_BTN
     mv a0, t0 #copy button value to a0
     j PROC_BUTTONS
+    
+ADD_POINT:
+    addi s2, s2, 1 #add a point to the counter
+    sw s2, LED_OFFSET(tp)
+    jal GENERATE_RANDOM_ROW
+    add t0, a0, x0 		#store random row in t0
+    slli t0, t0, ROW_SHIFT 	#Shift column to correct location
+    add t3, t3, t1		#Add row to VGA memory address
+    jal GENERATE_RANDOM_COLUMN
+    add t1, x0, a0              # Store random column in t1
+    slli t1, t1, COLUMN_SHIFT   # Shift column to correct location in VGA memory
+    add t3, t3, t1              # Add column to VGA memory address
+
+    # Store banana VGA Location in s3
+    add s3, x0, t3
+    li t4, CHAR_BANANA
+    sw t4, 0(s3)
+    j CONTINUE
 
 UPDATE_CHAR_ADDRESS:
     # load current character address into t2
