@@ -245,7 +245,7 @@ PROC_BUTTONS:
     #jal move char
     jal MOVE_CHAR
     
-    beq s3, a0, ADD_POINT
+    #beq s3, a0, ADD_POINT
     
 
 CONTINUE:
@@ -257,7 +257,47 @@ CONTINUE:
     j PROC_BUTTONS
 
 UPDATE_CHAR_ADDRESS:
+    # load current character address into t2
+    lw t2, %lo(DISPLACED_CHAR_LOC)(gp)
     
+CHECK_BTNR:
+    li t0, BUTTON_R_MASK
+    bne t0, a0, CHECK_BTNL
+    li t1, LAST_COLUMN
+    beq s5, t1, CHECKER_DONE #if last column do nothing
+    addi t2, t2, 4 #increment pointer
+    j CHECKER_DONE
+    
+CHECK_BTNL:
+    li t0, BUTTON_L_MASK
+    bne t0, a0, CHECK_BTND
+    li t1, FIRST_COLUMN
+    beq s5, t1, CHECKER_DONE #if first column do nothing
+    addi t2, t2, -4 #decrement pointer
+    j CHECKER_DONE
+    
+CHECK_BTND:
+    li t0, BUTTON_D_MASK
+    bne t0, a0, CHECK_BTNU
+    li t1, LAST_ROW
+    beq s4, t1, CHECKER_DONE #if in last row do nothing
+    addi t2, t2, ADDRESSES_PER_ROW #increment pointer
+    j CHECKER_DONE
+    
+CHECK_BTNU:
+    li t0, BUTTON_U_MASK
+    bne t0, a0, CHECKER_DONE
+    li t1, FIRST_ROW
+    beq s4, t1, CHECKER_DONE #if in first row do nothing
+    addi t2, t2, NEG_ADDRESSES_PER_ROW #decrement pointer
+    
+CHECKER_DONE:
+    #load the character at the new location
+    lw t0, 0(t2)
+    
+CHECKER_RET:
+    mv a0, t2
+    ret
 
 UPDATE_TIMER:
     lw t0, TIMER(tp) #load timer value
