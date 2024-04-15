@@ -58,7 +58,7 @@
     .eqv CHAR_O_RED 0x000f0047		# Modified ASCII 'O' with black background and red foreground
     .eqv CHAR_V_RED 0x000f0047		# Modified ASCII 'V' with black background and red foreground
     .eqv CHAR_R_RED 0x000f0047		# Modified ASCII 'R' with black background and red foreground
-    .eqv CHAR_SPACE 0x000f0020          # Modified ASCII ' ' with black background and red foreground
+    .eqv CHAR_SPACE 0x00000020          # Modified ASCII ' ' with black background
     .eqv COLUMN_MASK 0x1fc              # Mask for the bits in the VGA address for the column
     .eqv COLUMN_SHIFT 2                 # Number of right shifts to determine VGA column
     .eqv ROW_MASK 0x3e00                # Mask for the bits in the VGA address for the row
@@ -72,13 +72,13 @@
     .eqv ARRAY_OFFSET 0x4               
     .eqv ADDRESSES_PER_ROW 512
     .eqv NEG_ADDRESSES_PER_ROW -512
-    .eqv STARTING_LOC 0x8204            # The VGA memory address wher ethe 'starting' character is located.
+    .eqv STARTING_LOC 0x987C            # The VGA memory address wher ethe 'starting' character is located.
                                         # 1,2 or 0x8000+1*4+2*512=0x8204
     .eqv ENDING_LOC 0xb700              # The VGA memory address where the 'ending character' is located
                                         # 64, 27 or 0x8000+64*4+27*512=0xb700
     .eqv BLOCK_LOC 0x987C               # The VGA memory address where the 'block character' is located
                                         # 31, 12 or 0x8000+31*4+12*512=0x987C
-    .eqv SEGMENT_TIMER_INTERVAL 100     # This constant represents the number of timer ticks (each 1 ms)
+    .eqv SEGMENT_TIMER_INTERVAL 1000     # This constant represents the number of timer ticks (each 1 ms)
                                         # that are needed before incrementing the timer value on the seven
                                         # segment display. With a value of 100, the timer will increment
                                         # every 250 ms (or 4 times a second).
@@ -213,9 +213,14 @@ GENERATE_RANDOM_COLUMN:
     
 
 INIT_MONKEY:
-    lw t0, 0(s1) #get VGA address of monkey
-    li t1, CHAR_MONKEY #load into temp register monkey char value
-    sw t1, 0(t0) #load monkey char value into VGA address of monkey
+    li t0, STARTING_LOC #get VGA address of monkey
+    lw t1, 0(t0)
+    srli t1, t1, 8
+    sw t1, CHAR_COLOR_OFFSET(tp) #writes new color value
+    
+RESTART:
+    li a0, STARTING_LOC #place the monkey in starting location
+    jal MOVE_CHAR 
     
 NO_BUTTON_START:
     lw t0, BUTTON_OFFSET(tp)
@@ -252,19 +257,31 @@ CONTINUE:
     #Wait for button release while updating timer
     jal UPDATE_TIMER
     lw t0, BUTTON_OFFSET(tp)
-    beq x0, t0, CONTINUE
+    bne x0, t0, CONTINUE
+    
+CONTINUE_BTN:
+    jal UPDATE_TIMER
+    lw t0, BUTTON_OFFSET(tp)
+    beq x0, t0, CONTINUE_BTN
     mv a0, t0 #copy button value to a0
     j PROC_BUTTONS
 
 UPDATE_CHAR_ADDRESS:
     # load current character address into t2
     lw t2, %lo(DISPLACED_CHAR_LOC)(gp)
+    # compute current column and row
+    li t0, COLUMN_MASK
+    and t3, t0, t2
+    srli t3, t3, COLUMN_SHIFT
+    li t0, ROW_MASK
+    and t4, t0, t2
+    srli t4, t4, ROW_SHIFT
     
 CHECK_BTNR:
     li t0, BUTTON_R_MASK
     bne t0, a0, CHECK_BTNL
     li t1, LAST_COLUMN
-    beq s5, t1, CHECKER_DONE #if last column do nothing
+    beq t3, t1, CHECKER_DONE #if last column do nothing
     addi t2, t2, 4 #increment pointer
     j CHECKER_DONE
     
@@ -272,7 +289,7 @@ CHECK_BTNL:
     li t0, BUTTON_L_MASK
     bne t0, a0, CHECK_BTND
     li t1, FIRST_COLUMN
-    beq s5, t1, CHECKER_DONE #if first column do nothing
+    beq t3, t1, CHECKER_DONE #if first column do nothing
     addi t2, t2, -4 #decrement pointer
     j CHECKER_DONE
     
@@ -280,7 +297,7 @@ CHECK_BTND:
     li t0, BUTTON_D_MASK
     bne t0, a0, CHECK_BTNU
     li t1, LAST_ROW
-    beq s4, t1, CHECKER_DONE #if in last row do nothing
+    beq t4, t1, CHECKER_DONE #if in last row do nothing
     addi t2, t2, ADDRESSES_PER_ROW #increment pointer
     j CHECKER_DONE
     
@@ -288,7 +305,7 @@ CHECK_BTNU:
     li t0, BUTTON_U_MASK
     bne t0, a0, CHECKER_DONE
     li t1, FIRST_ROW
-    beq s4, t1, CHECKER_DONE #if in first row do nothing
+    beq t4, t1, CHECKER_DONE #if in first row do nothing
     addi t2, t2, NEG_ADDRESSES_PER_ROW #decrement pointer
     
 CHECKER_DONE:
