@@ -215,7 +215,7 @@ GENERATE_RANDOM_COLUMN:
 INIT_MONKEY:
     lw t0, 0(s1) #get VGA address of monkey
     li t1, CHAR_MONKEY #load into temp register monkey char value
-    sw t1, 0(t0) #load snake char value into VGA address of monkey
+    sw t1, 0(t0) #load monkey char value into VGA address of monkey
     
 NO_BUTTON_START:
     lw t0, BUTTON_OFFSET(tp)
