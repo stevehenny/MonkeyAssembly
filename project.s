@@ -1,8 +1,9 @@
+
 #######################
 #
 # Filename: project.s
 #
-# Author: Stephen Henstrom
+# Author: Stephen Henstrom, Matthew Topham
 # Class: ECEn 323, Section 002, Winter 2024
 # Date: 4/3/2024
 #
@@ -258,10 +259,6 @@ CONTINUE:
 UPDATE_CHAR_ADDRESS:
     
 
-MOVE_CHAR:
-
-
-
 UPDATE_TIMER:
     lw t0, TIMER(tp) #load timer value
     li t1, SEGMENT_TIMER_INTERVAL #load constant
@@ -280,4 +277,56 @@ DONE:
     lw a0, SEVENSEG_OFFSET(tp)
     ret
     
+MOVE_CHAR:
+    addi sp, sp, -4 #make room and save RA on stack
+    sw ra, 0(sp) #put return address on stack
     
+    #load the address of the old character that was previously replaced
+    lw t3, %lo(DISPLACED_CHAR_LOC)(gp)
+    #if this address is zero, no need to restore charcter
+    beq t3, x0, SAVE_DISPLACED_CHAR
+    
+    #load the value of the chracter that was previously displaced
+    lw t2, %lo(DISPLACED_CHAR)(gp)
+    #restore the character that was displaced
+    sw t2, 0(t3)
+    
+SAVE_DISPLACED_CHAR:
+    #load value of the character that is going to be displaced
+    lw t1, 0(a0)
+    #load address of the displaced character location
+    addi t0, gp, %lo(DISPLACED_CHAR)
+    #save the value of the displaced character
+    sw t1, 0(t0)
+    #save the address of the displaced character
+    addi t0, gp, %lo(DISPLACED_CHAR_LOC)
+    sw a0, 0(t0)
+    
+UPDATE_MOVING_CHAR:
+    #load the chracter value to write into the new location
+    lw t0, %lo(MOVING_CHAR)(gp)
+    #write the new character
+    sw t0, 0(a0)
+    
+MOVING_EXIT:
+    lw ra, 0(sp) #restore return address
+    addi sp, sp, 4 #update stack pointer
+    ret
+    
+    nop
+    nop
+    nop
+    
+#data segment
+.data
+#this location stores the value of the character
+MOVING_CHAR:
+    .word CHAR_MONKEY
+    
+#stores the value of the overwritten character
+DISPLACED_CHAR:
+    .word 0
+    
+#stores the memory address of the moving character
+DISPLACED_CHAR_LOC:
+    .word 0
