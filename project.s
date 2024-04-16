@@ -7,7 +7,7 @@
 # Class: ECEn 323, Section 002, Winter 2024
 # Date: 4/3/2024
 #
-# This is a game of monkey implemented in assembly on the Artix-7 FPGA board
+# This is an implementation of Snake in assembly on the Artix-7 FPGA board
 #
 # Memory Organization:
 #   0x0000-0x1fff : text
@@ -52,12 +52,12 @@
     .eqv CHAR_MONKEY 0x000fff06          # Modified ASCII character that is our monkey with black background and green foreground
     .eqv CHAR_BANANA 0x000ff005         # Modified ASCII character that is our banana with black background and yellow foreground
     .eqv CHAR_G_RED 0x000f0047		# Modified ASCII 'G' with black background and red foreground
-    .eqv CHAR_A_RED 0x000f0047		# Modified ASCII 'A' with black background and red foreground
-    .eqv CHAR_M_RED 0x000f0047		# Modified ASCII 'M' with black background and red foreground
-    .eqv CHAR_E_RED 0x000f0047		# Modified ASCII 'E' with black background and red foreground
-    .eqv CHAR_O_RED 0x000f0047		# Modified ASCII 'O' with black background and red foreground
-    .eqv CHAR_V_RED 0x000f0047		# Modified ASCII 'V' with black background and red foreground
-    .eqv CHAR_R_RED 0x000f0047		# Modified ASCII 'R' with black background and red foreground
+    .eqv CHAR_A_RED 0x000f0041		# Modified ASCII 'A' with black background and red foreground
+    .eqv CHAR_M_RED 0x000f004d		# Modified ASCII 'M' with black background and red foreground
+    .eqv CHAR_E_RED 0x000f0045		# Modified ASCII 'E' with black background and red foreground
+    .eqv CHAR_O_RED 0x000f004f		# Modified ASCII 'O' with black background and red foreground
+    .eqv CHAR_V_RED 0x000f0056		# Modified ASCII 'V' with black background and red foreground
+    .eqv CHAR_R_RED 0x000f0052		# Modified ASCII 'R' with black background and red foreground
     .eqv CHAR_SPACE 0x00000020          # Modified ASCII ' ' with black background
     .eqv COLUMN_MASK 0x1fc              # Mask for the bits in the VGA address for the column
     .eqv COLUMN_SHIFT 2                 # Number of right shifts to determine VGA column
@@ -76,6 +76,16 @@
     .eqv NEG_ADDRESSES_PER_ROW -512
     .eqv STARTING_LOC 0x987C            # The VGA memory address wher ethe 'starting' character is located.
                                         # 1,2 or 0x8000+1*4+2*512=0x8204
+    .eqv G_ADDRESS 0x987C
+    .eqv A_ADDRESS 0x9880
+    .eqv M_ADDRESS 0x9884
+    .eqv E_ADDRESS 0x9888
+    .eqv SPACE_ADDRESS 0x988C
+    .eqv O_ADDRESS 0x9890
+    .eqv V_ADDRESS 0x9894
+    .eqv EE_ADDRESS 0x9898
+    .eqv R_ADDRESS 0x989C
+    
     .eqv ENDING_LOC 0xb700              # The VGA memory address where the 'ending character' is located
                                         # 64, 27 or 0x8000+64*4+27*512=0xb700
     .eqv BANANA_LOC 0x9880               # The VGA memory address where the 'block character' is located
@@ -91,6 +101,7 @@
     .eqv ROW_SUBTRACT_CONST -7
     .eqv COL_AND_RANDOM_MASK 0x0000002f
     .eqv COL_OR_RANDOM_MASK 0x00000008
+    .eqv MAX_TIME 0x00000020
 
 main:
      # The purpose of this initial section is to setup the global registers that
@@ -151,20 +162,20 @@ INITIALIZE_MONKEY_LOC:
     #initialize the first location of the monkey
     #This puts the offsets for the row and the column for the initial vga location
     #into t1 and t0 respectively
-    addi t0, x0, INIT_COL_LOC
-    addi t1, x0, INIT_ROW_LOC
-    add s4, t1, x0 # s4 STORES THE ROW OF THE MONKEY
-    add s5, t0, x0 # s5 STORES THE COL OF THE MONKEY
-    slli t0, t0, COLUMN_SHIFT
-    slli t1, t1, ROW_SHIFT
+    #addi t0, x0, INIT_COL_LOC
+    #addi t1, x0, INIT_ROW_LOC
+    #add s4, t1, x0 # s4 STORES THE ROW OF THE MONKEY
+    #add s5, t0, x0 # s5 STORES THE COL OF THE MONKEY
+    #slli t0, t0, COLUMN_SHIFT
+    #slli t1, t1, ROW_SHIFT
     
     # put the inital VGA location of MONKEY t2 
-    add t2, s0, x0
-    add t2, t2, t1
-    add t2, t2, t0
+    #add t2, s0, x0
+    #add t2, t2, t1
+    #add t2, t2, t0
     
     # Now store the word in the offset of our
-    sw t2, 0(s1)            # store the VGA location of the monkey
+    #sw t2, 0(s1)            # store the VGA location of the monkey
 
     # Call main program procedure
     jal INIT_MONKEY
@@ -183,7 +194,7 @@ GENERATE_RANDOM_ROW:
     bge t1, t0 SKIP
     addi t0, t0, ROW_SUBTRACT_CONST
 SKIP:
-    add a0, t0, x0
+    add a1, t0, x0
     ret
     
 
@@ -193,7 +204,7 @@ GENERATE_RANDOM_COLUMN:
     lw t0, TIMER(tp) #load timer value into temp register t0
     andi t0, t0, COL_AND_RANDOM_MASK #make sure value is less than 64
     ori t0, t0, COL_OR_RANDOM_MASK  #make sure value is greater than 8
-    add a0, t0, x0
+    add a1, t0, x0
     ret
     
 
@@ -205,11 +216,43 @@ INIT_MONKEY:
 
     
 RESTART:
+    #clear GAME OVER
+    li t0, G_ADDRESS
+    li t1, CHAR_SPACE
+    sw t1, 0(t0)
+    li t0, A_ADDRESS
+    sw t1, 0(t0)
+    li t0, M_ADDRESS
+    sw t1, 0(t0)
+    li t0, E_ADDRESS
+    sw t1, 0(t0)
+    li t0, O_ADDRESS
+    sw t1, 0(t0)
+    li t0, V_ADDRESS
+    sw t1, 0(t0)
+    li t0, EE_ADDRESS
+    sw t1, 0(t0)
+    li t0, R_ADDRESS
+    sw t1, 0(t0)
+    
     li a0, STARTING_LOC #place the monkey in starting location
+    li t0, CHAR_SPACE #load space character
+    sw t0, 0(s3) #erase old banana
+    add t3, x0, s0  # Starting address of VGA memory
     lw t1, 0(t0)
     srli t1, t1, 8
     sw t1, CHAR_COLOR_OFFSET(tp) #writes new color value
+    add s2, x0, x0 		#reset counter register
     jal MOVE_CHAR 
+    li s3, BANANA_LOC	# Store banana VGA Location in s3
+    li t1, CHAR_BANANA
+    sw t1, 0(s3)
+    
+    #Clear seven segment display and LEDs and Timer
+    sw x0, SEVENSEG_OFFSET(tp)
+    sw x0, LED_OFFSET(tp)
+    sw x0, TIMER(tp)      
+
     
 NO_BUTTON_START:
     lw t0, BUTTON_OFFSET(tp)
@@ -231,7 +274,7 @@ BUTTON_START:
 PROC_BUTTONS:
     #see if btnc is pressed (to reset game)
     li t0, BUTTON_C_MASK
-    beq t0, a0, INIT_MONKEY #if the center button is pressed, go back to init monkey screen
+    beq t0, a0, RESTART #if the center button is pressed, go back to init monkey screen
     
     #Continue the game
     jal UPDATE_CHAR_ADDRESS
@@ -240,8 +283,7 @@ PROC_BUTTONS:
     jal MOVE_CHAR
     
     #if monkey is on banana branch to add point
-    add t1, x0, a0
-    beq s3, t1, ADD_POINT
+    beq s3, a0, ADD_POINT
     
 
 CONTINUE:
@@ -261,11 +303,12 @@ ADD_POINT:
     addi s2, s2, 1 #add a point to the counter
     sw s2, LED_OFFSET(tp)
     jal GENERATE_RANDOM_ROW
-    add t0, a0, x0 		#store random row in t0
+    add t0, a1, x0 		#store random row in t0
     slli t0, t0, ROW_SHIFT 	#Shift column to correct location
-    add t3, t3, t1		#Add row to VGA memory address
+    add t3, x0, s0
+    add t3, t3, t0		#Add row to VGA memory address
     jal GENERATE_RANDOM_COLUMN
-    add t1, x0, a0              # Store random column in t1
+    add t1, x0, a1              # Store random column in t1
     slli t1, t1, COLUMN_SHIFT   # Shift column to correct location in VGA memory
     add t3, t3, t1              # Add column to VGA memory address
 
@@ -275,7 +318,41 @@ ADD_POINT:
     sw t4, 0(s3)
     j CONTINUE
 
+END_GAME:
+    #display GAME OVER
+    li t0, G_ADDRESS
+    li t1, CHAR_G_RED
+    sw t1, 0(t0)
+    li t0, A_ADDRESS
+    li t1, CHAR_A_RED
+    sw t1, 0(t0)
+    li t0, M_ADDRESS
+    li t1, CHAR_M_RED
+    sw t1, 0(t0)
+    li t0, E_ADDRESS
+    li t1, CHAR_E_RED
+    sw t1, 0(t0)
+    li t0, SPACE_ADDRESS
+    li t1, CHAR_SPACE
+    sw t1, 0(t0)
+    li t0, O_ADDRESS
+    li t1, CHAR_O_RED
+    sw t1, 0(t0)
+    li t0, V_ADDRESS
+    li t1, CHAR_V_RED
+    sw t1, 0(t0)
+    li t0, EE_ADDRESS
+    li t1, CHAR_E_RED
+    sw t1, 0(t0)
+    li t0, R_ADDRESS
+    li t1, CHAR_R_RED
+    sw t1, 0(t0)
+    j WAIT
+
+
 UPDATE_CHAR_ADDRESS:
+    addi sp, sp, -4 #make room and save RA on stack
+    sw ra, 0(sp) #put return address on stack
     # load current character address into t2
     lw t2, %lo(DISPLACED_CHAR_LOC)(gp)
     # compute current column and row
@@ -323,9 +400,12 @@ CHECKER_DONE:
     
 CHECKER_RET:
     mv a0, t2
+    lw ra, 0(sp) #restore return address
+    addi sp, sp, 4 #update stack pointer
     ret
 
 UPDATE_TIMER:
+    
     lw t0, TIMER(tp) #load timer value
     li t1, SEGMENT_TIMER_INTERVAL #load constant
     bne t1, t0, DONE
@@ -338,6 +418,9 @@ UPDATE_TIMER:
     addi t0, t0, 1
     #update display
     sw t0, SEVENSEG_OFFSET(tp)
+    #load max time into t1
+    li t1, MAX_TIME
+    bge t0, t1, END_GAME #if time is greater than alotted time end game
     
 DONE:
     lw a0, SEVENSEG_OFFSET(tp)
@@ -355,6 +438,10 @@ MOVE_CHAR:
     #load the value of the chracter that was previously displaced
     lw t2, %lo(DISPLACED_CHAR)(gp)
     #restore the character that was displaced
+    sw t2, 0(t3)
+    #load character space into t2
+    li t2, CHAR_SPACE
+    #erase the previous banana
     sw t2, 0(t3)
     
 SAVE_DISPLACED_CHAR:
@@ -382,6 +469,13 @@ MOVING_EXIT:
     nop
     nop
     nop
+    
+WAIT:
+    lw t0, BUTTON_OFFSET(tp)
+     #see if btnc is pressed (to reset game)
+    li t1, BUTTON_C_MASK
+    beq t1, t0, RESTART #if the center button is pressed, go back to init monkey screen
+    j WAIT
     
 #data segment
 .data
