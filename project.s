@@ -7,7 +7,7 @@
 # Class: ECEn 323, Section 002, Winter 2024
 # Date: 4/3/2024
 #
-# This is an implementation of Snake in assembly on the Artix-7 FPGA board
+# This is a game of monkey implemented in assembly on the Artix-7 FPGA board
 #
 # Memory Organization:
 #   0x0000-0x1fff : text
@@ -240,7 +240,8 @@ PROC_BUTTONS:
     jal MOVE_CHAR
     
     #if monkey is on banana branch to add point
-    beq s3, a0, ADD_POINT
+    add t1, x0, a0
+    beq s3, t1, ADD_POINT
     
 
 CONTINUE:
