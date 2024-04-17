@@ -1,3 +1,12 @@
+ECEN 323 Lab #12 Project Instructions
+
+Name:Matthew Topham (mdt68)
+[Partner: Stephen Henstrom (stephe20)]
+
+Title: MONKEY
+
+Instructions:
+
 HOW TO PLAY MONKEY:
 -The game starts when you press button left, right, down, or up
 -The goal of the game is to collect as many bananas as possible in 32 seconds
@@ -6,3 +15,12 @@ HOW TO PLAY MONKEY:
 -Pressing the center button will restart the game, timer, and LEDs
 -George the monkey cannot exit his perimiter box, any button pushes trying to get outside the box will be ignored
 -One button press corresponds to one move of George the monkey
+
+Custom characters: Custom characters include '\', '|', '_', and '-' for the perimeter border; '$' for the banana; ',' for George the Monkey; '%' and '#' for the palm tree; as well as changes to 'M', 'O', 'N', 'K', 'E', 'Y', 'G', 'A', 'O', 'V', and 'R' which are present in the background and game over screen.
+Custom background: Our custom background displays the box which George the monkey can reside in as well as the title of the game, two palm trees, two other monkeys, and two bananas
+Procedures: we created GENERATE_RANDOM_ROW, GENERATE_RANDOM_COLUMN, ADD_POINT, and END_GAME
+Buttons: the buttons left, right, up, and down move George the Monkey around. Button center resets the game
+LEDs and 7 Segment Display: the LEDs display the score of how many bananas George has collected, the seven segment display show the timer of the game
+
+Partner:
+We broke up the tasks evenly. We each worked on the assembly file for different parts. Matthew did the fonts and the background while Stephen did the initialization of the assembly file. Matthew Then did the motion mechanics of George the monkey while Stephen did the timer logic and random banana location. We both worked on the game over procedure and the add point procedure. Stephen finalized the assembly by reviewing all the comments and formatting. 
