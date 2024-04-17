@@ -1,0 +1,8 @@
+HOW TO PLAY MONKEY:
+-The game starts when you press button left, right, down, or up
+-The goal of the game is to collect as many bananas as possible in 32 seconds
+-The timer is shown in hex on the seven segment display
+-Your score is displayed on the LEDs in binary
+-Pressing the center button will restart the game, timer, and LEDs
+-George the monkey cannot exit his perimiter box, any button pushes trying to get outside the box will be ignored
+-One button press corresponds to one move of George the monkey
