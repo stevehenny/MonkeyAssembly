@@ -101,6 +101,7 @@
     .eqv COL_AND_RANDOM_MASK 0x0000002f # Mask to ensure random column is less than 64
     .eqv COL_OR_RANDOM_MASK 0x00000008 # Mask to ensure random column is greater than 8
     .eqv MAX_TIME 0x00000020            # Maximum time allowed for the game (32 in decimal)
+    .eqv CHAR_COLOR_SHIFT 8             # Number of right shifts to determine the color of the character
 
 # The purpose of this initial section is to setup the global registers that
 # will be used for the entire program execution. This setup portion will only
@@ -159,7 +160,7 @@ INITIALIZE_MONKEY_LOC:
 
 GENERATE_RANDOM_ROW:
     # Generate a random number between 4 and 25ROW_SUBTRACT_CONST
-    xor t0, t0, t0 #clear t0
+    xor t0, t0, t0                  #clear t0
     lw t0, TIMER(tp)                 #load timer value into temp register t0
     andi t0, t0, ROW_AND_RANDOM_MASK #MAKE SURE VALUE IS LESS THAN 32
     ori t0, t0, ROW_OR_RANDOM_MASK #MAKE SURE VALUE IS GREATER THAN 4
@@ -174,26 +175,26 @@ SKIP:
 
 GENERATE_RANDOM_COLUMN:
     # Generate a random number between 4 and 64
-    xor t0, t0, t0
-    lw t0, TIMER(tp) #load timer value into temp register t0
+    xor t0, t0, t0                  #clear t0
+    lw t0, TIMER(tp)                #load timer value into temp register t0
     andi t0, t0, COL_AND_RANDOM_MASK #make sure value is less than 64
     ori t0, t0, COL_OR_RANDOM_MASK  #make sure value is greater than 8
-    add a1, t0, x0
-    ret
+    add a1, t0, x0                  #store random column in a1
+    ret                             #return with random column in a1
     
 
 INIT_MONKEY:
-    li t0, STARTING_LOC #get VGA address of monkey
-    lw t1, 0(t0)
-    srli t1, t1, 8
+    li t0, STARTING_LOC         #get VGA address of monkey
+    lw t1, 0(t0)                #load character value
+    srli t1, t1, CHAR_COLOR_SHIFT#shift to get color value
     sw t1, CHAR_COLOR_OFFSET(tp) #writes new color value
 
     
 RESTART:
     #clear GAME OVER
-    li t0, G_ADDRESS
+    li t0, G_ADDRESS 
     li t1, CHAR_SPACE
-    sw t1, 0(t0)
+    sw t1, 0(t0)     
     li t0, A_ADDRESS
     sw t1, 0(t0)
     li t0, M_ADDRESS
@@ -209,18 +210,18 @@ RESTART:
     li t0, R_ADDRESS
     sw t1, 0(t0)
     
-    li a0, STARTING_LOC #place the monkey in starting location
-    li t0, CHAR_SPACE #load space character
-    sw t0, 0(s3) #erase old banana
-    add t3, x0, s0  # Starting address of VGA memory
-    lw t1, 0(t0)
-    srli t1, t1, 8
-    sw t1, CHAR_COLOR_OFFSET(tp) #writes new color value
-    add s2, x0, x0 		#reset counter register
-    jal MOVE_CHAR 
-    li s3, BANANA_LOC	# Store banana VGA Location in s3
-    li t1, CHAR_BANANA
-    sw t1, 0(s3)
+    li a0, STARTING_LOC                 #place the monkey in starting location
+    li t0, CHAR_SPACE                   #load space character
+    sw t0, 0(s3)                        #erase old banana
+    add t3, x0, s0                      # Starting address of VGA memory
+    lw t1, 0(t0)                        # Load the character at the new location
+    srli t1, t1, CHAR_COLOR_SHIFT       # Shift to get color value
+    sw t1, CHAR_COLOR_OFFSET(tp)        #writes new color value
+    add s2, x0, x0 		                #reset counter register
+    jal MOVE_CHAR                       #move the monkey to the starting location
+    li s3, BANANA_LOC	                # Store banana VGA Location in s3
+    li t1, CHAR_BANANA                  # Store the character for the banana
+    sw t1, 0(s3)                        # Store the character in the VGA memory
     
     #Clear seven segment display and LEDs and Timer
     sw x0, SEVENSEG_OFFSET(tp)
@@ -229,12 +230,12 @@ RESTART:
 
     
 NO_BUTTON_START:
-    lw t0, BUTTON_OFFSET(tp)
-    bne t0, x0, NO_BUTTON_START
+    lw t0, BUTTON_OFFSET(tp)            #load button value
+    bne t0, x0, NO_BUTTON_START         #wait for button press
     
 BUTTON_START:
-    lw t0, BUTTON_OFFSET(tp)
-    beq t0, x0, BUTTON_START
+    lw t0, BUTTON_OFFSET(tp)            #load button value
+    beq t0, x0, BUTTON_START            #wait for button release
      
     #a button has been pressed to start the game
     #copy button values to a0
@@ -246,8 +247,8 @@ BUTTON_START:
     sw x0, TIMER(tp)      
 
 PROC_BUTTONS:
-    #see if btnc is pressed (to reset game)
-    li t0, BUTTON_C_MASK
+    
+    li t0, BUTTON_C_MASK #see if btnc is pressed (to reset game)
     beq t0, a0, RESTART #if the center button is pressed, go back to init monkey screen
     
     #Continue the game
@@ -262,35 +263,35 @@ PROC_BUTTONS:
 
 CONTINUE:
     #Wait for button release while updating timer
-    jal UPDATE_TIMER
-    lw t0, BUTTON_OFFSET(tp)
-    bne x0, t0, CONTINUE
+    jal UPDATE_TIMER            #update timer
+    lw t0, BUTTON_OFFSET(tp)    #load button value
+    bne x0, t0, CONTINUE        #wait for button release
     
 CONTINUE_BTN:
-    jal UPDATE_TIMER
-    lw t0, BUTTON_OFFSET(tp)
-    beq x0, t0, CONTINUE_BTN
-    mv a0, t0 #copy button value to a0
-    j PROC_BUTTONS
+    jal UPDATE_TIMER            #update timer
+    lw t0, BUTTON_OFFSET(tp)    #load button value
+    beq x0, t0, CONTINUE_BTN    #wait for button press
+    mv a0, t0                   #copy button value to a0
+    j PROC_BUTTONS              #process button press
     
 ADD_POINT:
-    addi s2, s2, 1 #add a point to the counter
-    sw s2, LED_OFFSET(tp)
-    jal GENERATE_RANDOM_ROW
-    add t0, a1, x0 		#store random row in t0
-    slli t0, t0, ROW_SHIFT 	#Shift column to correct location
-    add t3, x0, s0
-    add t3, t3, t0		#Add row to VGA memory address
-    jal GENERATE_RANDOM_COLUMN
+    addi s2, s2, 1              #add a point to the counter
+    sw s2, LED_OFFSET(tp)       #display the new score on the LEDs
+    jal GENERATE_RANDOM_ROW     #generate a new random row
+    add t0, a1, x0 		        #store random row in t0
+    slli t0, t0, ROW_SHIFT 	    #Shift column to correct location
+    add t3, x0, s0              # Starting address of VGA memory
+    add t3, t3, t0		        #Add row to VGA memory address
+    jal GENERATE_RANDOM_COLUMN  #generate a new random column
     add t1, x0, a1              # Store random column in t1
     slli t1, t1, COLUMN_SHIFT   # Shift column to correct location in VGA memory
     add t3, t3, t1              # Add column to VGA memory address
 
     # Store banana VGA Location in s3
-    add s3, x0, t3
-    li t4, CHAR_BANANA
-    sw t4, 0(s3)
-    j CONTINUE
+    add s3, x0, t3          # Store the VGA location of the banana
+    li t4, CHAR_BANANA      # Store the character for the banana
+    sw t4, 0(s3)            # Store the character in the VGA memory
+    j CONTINUE              #continue the game
 
 END_GAME:
     #display GAME OVER
@@ -325,47 +326,45 @@ END_GAME:
 
 
 UPDATE_CHAR_ADDRESS:
-    addi sp, sp, -4 #make room and save RA on stack
-    sw ra, 0(sp) #put return address on stack
-    # load current character address into t2
-    lw t2, %lo(DISPLACED_CHAR_LOC)(gp)
-    # compute current column and row
-    li t0, COLUMN_MASK
-    and t3, t0, t2
-    srli t3, t3, COLUMN_SHIFT
-    li t0, ROW_MASK
-    and t4, t0, t2
-    srli t4, t4, ROW_SHIFT
+    addi sp, sp, -4                         #make room and save RA on stack
+    sw ra, 0(sp)                            #put return address on stack
+    lw t2, %lo(DISPLACED_CHAR_LOC)(gp)      # load current character address into t2
+    li t0, COLUMN_MASK                      # compute current column and row
+    and t3, t0, t2                          # compute current column
+    srli t3, t3, COLUMN_SHIFT               # shift to get column value
+    li t0, ROW_MASK                         # compute current row
+    and t4, t0, t2                          # compute current row
+    srli t4, t4, ROW_SHIFT                  # shift to get row value
     
 CHECK_BTNR:
-    li t0, BUTTON_R_MASK
-    bne t0, a0, CHECK_BTNL
-    li t1, LAST_COLUMN
-    beq t3, t1, CHECKER_DONE #if last column do nothing
-    addi t2, t2, 4 #increment pointer
-    j CHECKER_DONE
+    li t0, BUTTON_R_MASK                    # check if right button is pressed
+    bne t0, a0, CHECK_BTNL                  # if not, check left button
+    li t1, LAST_COLUMN                      # check if in last column
+    beq t3, t1, CHECKER_DONE                #if last column do nothing
+    addi t2, t2, 4                          #increment pointer
+    j CHECKER_DONE                          #done checking
     
 CHECK_BTNL:
-    li t0, BUTTON_L_MASK
-    bne t0, a0, CHECK_BTND
-    li t1, FIRST_COLUMN
-    beq t3, t1, CHECKER_DONE #if first column do nothing
-    addi t2, t2, -4 #decrement pointer
-    j CHECKER_DONE
+    li t0, BUTTON_L_MASK            # check if left button is pressed
+    bne t0, a0, CHECK_BTND          # if not, check down button
+    li t1, FIRST_COLUMN             # check if in first column
+    beq t3, t1, CHECKER_DONE        #if first column do nothing
+    addi t2, t2, -4                 #decrement pointer
+    j CHECKER_DONE                  #done checking
     
 CHECK_BTND:
-    li t0, BUTTON_D_MASK
-    bne t0, a0, CHECK_BTNU
-    li t1, LAST_ROW
-    beq t4, t1, CHECKER_DONE #if in last row do nothing
+    li t0, BUTTON_D_MASK            # check if down button is pressed
+    bne t0, a0, CHECK_BTNU          # if not, check up button
+    li t1, LAST_ROW                 # check if in last row
+    beq t4, t1, CHECKER_DONE        #if in last row do nothing
     addi t2, t2, ADDRESSES_PER_ROW #increment pointer
-    j CHECKER_DONE
+    j CHECKER_DONE                  #done checking
     
 CHECK_BTNU:
-    li t0, BUTTON_U_MASK
-    bne t0, a0, CHECKER_DONE
-    li t1, FIRST_ROW
-    beq t4, t1, CHECKER_DONE #if in first row do nothing
+    li t0, BUTTON_U_MASK                # check if up button is pressed
+    bne t0, a0, CHECKER_DONE            # if not, done checking
+    li t1, FIRST_ROW                    # check if in first row
+    beq t4, t1, CHECKER_DONE            #if in first row do nothing
     addi t2, t2, NEG_ADDRESSES_PER_ROW #decrement pointer
     
 CHECKER_DONE:
@@ -373,83 +372,66 @@ CHECKER_DONE:
     lw t0, 0(t2)
     
 CHECKER_RET:
-    mv a0, t2
+    mv a0, t2   #return with new character address in a0
     lw ra, 0(sp) #restore return address
     addi sp, sp, 4 #update stack pointer
-    ret
+    ret             #return
 
 UPDATE_TIMER:
     
-    lw t0, TIMER(tp) #load timer value
-    li t1, SEGMENT_TIMER_INTERVAL #load constant
-    bne t1, t0, DONE
+    lw t0, TIMER(tp)                #load timer value
+    li t1, SEGMENT_TIMER_INTERVAL   #load constant
+    bne t1, t0, DONE                #if timer is not at interval, do nothing
     
-    #clear timer by writing a 0 to it
-    sw x0, TIMER(tp)
-    #Load the current value being displayed on seven segment display
-    lw t0, SEVENSEG_OFFSET(tp)
-    #add 1 to that value
-    addi t0, t0, 1
-    #update display
-    sw t0, SEVENSEG_OFFSET(tp)
-    #load max time into t1
-    li t1, MAX_TIME
-    bge t0, t1, END_GAME #if time is greater than alotted time end game
+    
+    sw x0, TIMER(tp)            #clear timer by writing a 0 to it
+    lw t0, SEVENSEG_OFFSET(tp)  #Load the current value being displayed on seven segment display
+    addi t0, t0, 1              #add 1 to that value
+    sw t0, SEVENSEG_OFFSET(tp)  #update display
+    li t1, MAX_TIME             #load max time into t1
+    bge t0, t1, END_GAME        #if time is greater than alotted time end game
     
 DONE:
-    lw a0, SEVENSEG_OFFSET(tp)
-    ret
+    lw a0, SEVENSEG_OFFSET(tp) #load the current value being displayed on seven segment display
+    ret                         #return
     
 MOVE_CHAR:
     addi sp, sp, -4 #make room and save RA on stack
     sw ra, 0(sp) #put return address on stack
     
-    #load the address of the old character that was previously replaced
-    lw t3, %lo(DISPLACED_CHAR_LOC)(gp)
-    #if this address is zero, no need to restore charcter
-    beq t3, x0, SAVE_DISPLACED_CHAR
     
-    #load the value of the chracter that was previously displaced
-    lw t2, %lo(DISPLACED_CHAR)(gp)
-    #restore the character that was displaced
-    sw t2, 0(t3)
-    #load character space into t2
-    li t2, CHAR_SPACE
-    #erase the previous banana
-    sw t2, 0(t3)
+    lw t3, %lo(DISPLACED_CHAR_LOC)(gp)      #load the address of the old character that was previously replaced
+    beq t3, x0, SAVE_DISPLACED_CHAR         #if this address is zero, no need to restore charcter
+    lw t2, %lo(DISPLACED_CHAR)(gp)          #load the value of the chracter that was previously displaced
+    sw t2, 0(t3)                            #restore the character that was displaced
+    li t2, CHAR_SPACE                       #load character space into t2
+    sw t2, 0(t3)                            #erase the previous banana
     
 SAVE_DISPLACED_CHAR:
-    #load value of the character that is going to be displaced
-    lw t1, 0(a0)
-    #load address of the displaced character location
-    addi t0, gp, %lo(DISPLACED_CHAR)
-    #save the value of the displaced character
-    sw t1, 0(t0)
-    #save the address of the displaced character
-    addi t0, gp, %lo(DISPLACED_CHAR_LOC)
-    sw a0, 0(t0)
+    lw t1, 0(a0)                        #load value of the character that is going to be displaced
+    addi t0, gp, %lo(DISPLACED_CHAR)    #load address of the displaced character location
+    sw t1, 0(t0)                        #save the value of the displaced character
+    addi t0, gp, %lo(DISPLACED_CHAR_LOC)#save the address of the displaced character
+    sw a0, 0(t0)                        #save the address of the displaced character to memory
     
 UPDATE_MOVING_CHAR:
-    #load the chracter value to write into the new location
-    lw t0, %lo(MOVING_CHAR)(gp)
-    #write the new character
-    sw t0, 0(a0)
+    
+    lw t0, %lo(MOVING_CHAR)(gp)     #load the chracter value to write into the new location
+    sw t0, 0(a0)                    #write the new character
     
 MOVING_EXIT:
-    lw ra, 0(sp) #restore return address
-    addi sp, sp, 4 #update stack pointer
-    ret
-    
+    lw ra, 0(sp)        #restore return address
+    addi sp, sp, 4      #update stack pointer
+    ret                 #return
     nop
     nop
     nop
     
 WAIT:
-    lw t0, BUTTON_OFFSET(tp)
-     #see if btnc is pressed (to reset game)
-    li t1, BUTTON_C_MASK
-    beq t1, t0, RESTART #if the center button is pressed, go back to init monkey screen
-    j WAIT
+    lw t0, BUTTON_OFFSET(tp)        #load button value
+    li t1, BUTTON_C_MASK            #check if btnc is pressed
+    beq t1, t0, RESTART             #if the center button is pressed, go back to init monkey screen
+    j WAIT                          #wait for button press
     
 #data segment
 .data
