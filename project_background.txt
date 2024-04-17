@@ -2,27 +2,18 @@
 #
 # project_background.txt
 #
-# author: Matthew Topham
+# author: Matthew Topham, Stephen Henstrom
 # class: ECEN 323, Winter 2024, Section 2
 # date: 4/3/24
 #
-# description: This provides a background for our snake game
+# description: This provides a background for our monkey game
 #
-##################################################################################################
-#
-# project_background.txt
-#
-# author: Matthew Topham
-# class: ECEN 323, Winter 2024, Section 2
-# date: 4/3/24
-#
-# description: This provides a background for our snake game
-#
-#################################################
-.background_start
+###################################################
 
-                                  MONKEY
-                                     
+.background_start
+                              %            %
+                              #$, MONKEY ,$#
+                                                
        ___________________________________________________________
        |                                                         \
        |                                                         \
@@ -66,4 +57,8 @@
 '-'=0x000fff
 '_'=0x000fff
 '\'=0x000fff
+'$'=0x000ff0
+','=0x000fff
+'%'=0x000080
+'#'=0x000940
 
