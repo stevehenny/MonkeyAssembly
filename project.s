@@ -67,24 +67,23 @@
     .eqv FIRST_ROW 4                    # 4 - monkey can't go past this row
     .eqv LAST_COLUMN 64                 # 64 - monkey can't go past this column
     .eqv LAST_ROW 25                    # 25 - monkey can't go past this row
-    .eqv INIT_ROW_LOC 14
-    .eqv INIT_COL_LOC 38
-    .eqv INIT_BANANA_ROW 13
-    .eqv INIT_BANANA_COL 38
-    .eqv ARRAY_OFFSET 0x4               
-    .eqv ADDRESSES_PER_ROW 512
-    .eqv NEG_ADDRESSES_PER_ROW -512
+    .eqv INIT_ROW_LOC 14                # Initial row location of the monkey
+    .eqv INIT_COL_LOC 38                # Initial column location of the monkey
+    .eqv INIT_BANANA_ROW 13             # Initial row location of the banana
+    .eqv INIT_BANANA_COL 38             # Initial column location of the banana
+    .eqv ADDRESSES_PER_ROW 512          # Number of addresses per row in VGA memory
+    .eqv NEG_ADDRESSES_PER_ROW -512     # Negative number of addresses per row in VGA memory
     .eqv STARTING_LOC 0x987C            # The VGA memory address wher ethe 'starting' character is located.
                                         # 1,2 or 0x8000+1*4+2*512=0x8204
-    .eqv G_ADDRESS 0x987C
-    .eqv A_ADDRESS 0x9880
-    .eqv M_ADDRESS 0x9884
-    .eqv E_ADDRESS 0x9888
-    .eqv SPACE_ADDRESS 0x988C
-    .eqv O_ADDRESS 0x9890
-    .eqv V_ADDRESS 0x9894
-    .eqv EE_ADDRESS 0x9898
-    .eqv R_ADDRESS 0x989C
+    .eqv G_ADDRESS 0x987C               # The VGA memory address where the 'G' character is located
+    .eqv A_ADDRESS 0x9880               # The VGA memory address where the 'A' character is located
+    .eqv M_ADDRESS 0x9884               # The VGA memory address where the 'M' character is located
+    .eqv E_ADDRESS 0x9888               # The VGA memory address where the 'E' character is located
+    .eqv SPACE_ADDRESS 0x988C           # The VGA memory address where the 'space' character is located
+    .eqv O_ADDRESS 0x9890               # The VGA memory address where the 'O' character is located
+    .eqv V_ADDRESS 0x9894               # The VGA memory address where the 'V' character is located
+    .eqv EE_ADDRESS 0x9898              # The VGA memory address where the second 'E' character is located
+    .eqv R_ADDRESS 0x989C               # The VGA memory address where the 'R' character is located
     
     .eqv ENDING_LOC 0xb700              # The VGA memory address where the 'ending character' is located
                                         # 64, 27 or 0x8000+64*4+27*512=0xb700
@@ -96,23 +95,19 @@
                                         # every 250 ms (or 4 times a second).
 
     .eqv INIT_FASTEST_SCORE 0xffff      # Fastest score initialized to 0xffff (should get lower with better play)
-    .eqv ROW_AND_RANDOM_MASK 0x0000001f
-    .eqv ROW_OR_RANDOM_MASK 0x00000004
-    .eqv ROW_SUBTRACT_CONST -7
-    .eqv COL_AND_RANDOM_MASK 0x0000002f
-    .eqv COL_OR_RANDOM_MASK 0x00000008
-    .eqv MAX_TIME 0x00000020
+    .eqv ROW_AND_RANDOM_MASK 0x0000001f # Mask to ensure random row is less than 32
+    .eqv ROW_OR_RANDOM_MASK 0x00000004 # Mask to ensure random row is greater than 4
+    .eqv ROW_SUBTRACT_CONST -7          # Constant to subtract from random row to get value between 4 and 25
+    .eqv COL_AND_RANDOM_MASK 0x0000002f # Mask to ensure random column is less than 64
+    .eqv COL_OR_RANDOM_MASK 0x00000008 # Mask to ensure random column is greater than 8
+    .eqv MAX_TIME 0x00000020            # Maximum time allowed for the game (32 in decimal)
 
+# The purpose of this initial section is to setup the global registers that
+# will be used for the entire program execution. This setup portion will only
+# be run once.
 main:
-     # The purpose of this initial section is to setup the global registers that
-    # will be used for the entire program execution. This setup portion will only
-    # be run once.
-
     # Setup the stack pointer: sp = 0x3ffc
     li sp, 0x3ffc
-    # The previous "pseudo instruction" will be compiled into the following two instructions:
-    #  lui sp, 4		# 4 << 12 = 0x4000
-    #  addi sp, sp, -4		# 0x4000 - 4 = 0x3ffc
 
     # setup the global pointer to the data segment (2<<12 = 0x2000)
     lui gp, 2
@@ -154,48 +149,27 @@ GENERATE_INITIAL_BANANA:
 
     
     # Store banana VGA Location in s3
-    li s3, BANANA_LOC
-    li t4, CHAR_BANANA
-    sw t4, 0(s3)
+    li s3, BANANA_LOC       # Store the VGA location of the banana
+    li t4, CHAR_BANANA      # Store the character for the banana
+    sw t4, 0(s3)            # Store the character in the VGA memory
 
 INITIALIZE_MONKEY_LOC:
-    #initialize the first location of the monkey
-    #This puts the offsets for the row and the column for the initial vga location
-    #into t1 and t0 respectively
-    #addi t0, x0, INIT_COL_LOC
-    #addi t1, x0, INIT_ROW_LOC
-    #add s4, t1, x0 # s4 STORES THE ROW OF THE MONKEY
-    #add s5, t0, x0 # s5 STORES THE COL OF THE MONKEY
-    #slli t0, t0, COLUMN_SHIFT
-    #slli t1, t1, ROW_SHIFT
-    
-    # put the inital VGA location of MONKEY t2 
-    #add t2, s0, x0
-    #add t2, t2, t1
-    #add t2, t2, t0
-    
-    # Now store the word in the offset of our
-    #sw t2, 0(s1)            # store the VGA location of the monkey
-
     # Call main program procedure
     jal INIT_MONKEY
-
-    # End in infinite loop (should never get here)
-END_MAIN:
-    j END_MAIN
 
 GENERATE_RANDOM_ROW:
     # Generate a random number between 4 and 25ROW_SUBTRACT_CONST
     xor t0, t0, t0 #clear t0
-    lw t0, TIMER(tp) #load timer value into temp register t0
+    lw t0, TIMER(tp)                 #load timer value into temp register t0
     andi t0, t0, ROW_AND_RANDOM_MASK #MAKE SURE VALUE IS LESS THAN 32
     ori t0, t0, ROW_OR_RANDOM_MASK #MAKE SURE VALUE IS GREATER THAN 4
-    addi t1, x0, LAST_ROW
-    bge t1, t0 SKIP
-    addi t0, t0, ROW_SUBTRACT_CONST
+    addi t1, x0, LAST_ROW          #load last row value into t1
+    bge t1, t0 SKIP                #if last row is greater than random row, skip 
+    addi t0, t0, ROW_SUBTRACT_CONST #subtract 7 from random row
+
 SKIP:
-    add a1, t0, x0
-    ret
+    add a1, t0, x0 #store random row in a1
+    ret            #return with random row in a1 
     
 
 GENERATE_RANDOM_COLUMN:
