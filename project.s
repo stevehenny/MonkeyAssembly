@@ -158,6 +158,7 @@ INITIALIZE_MONKEY_LOC:
     # Call main program procedure
     jal INIT_MONKEY
 
+#This routine is used to generate a random row value between 4 and 25
 GENERATE_RANDOM_ROW:
     # Generate a random number between 4 and 25ROW_SUBTRACT_CONST
     xor t0, t0, t0                  #clear t0
@@ -168,11 +169,12 @@ GENERATE_RANDOM_ROW:
     bge t1, t0 SKIP                #if last row is greater than random row, skip 
     addi t0, t0, ROW_SUBTRACT_CONST #subtract 7 from random row
 
+#This routine is used to generate a random row value between 4 and 25
 SKIP:
     add a1, t0, x0 #store random row in a1
     ret            #return with random row in a1 
     
-
+#This routine is used to generate a random column value between 8 and 64
 GENERATE_RANDOM_COLUMN:
     # Generate a random number between 4 and 64
     xor t0, t0, t0                  #clear t0
@@ -370,7 +372,8 @@ CHECK_BTNU:
 CHECKER_DONE:
     #load the character at the new location
     lw t0, 0(t2)
-    
+
+#This subroutine is used to check if the character at the new location is a banana
 CHECKER_RET:
     mv a0, t2   #return with new character address in a0
     lw ra, 0(sp) #restore return address
@@ -378,7 +381,6 @@ CHECKER_RET:
     ret             #return
 
 UPDATE_TIMER:
-    
     lw t0, TIMER(tp)                #load timer value
     li t1, SEGMENT_TIMER_INTERVAL   #load constant
     bne t1, t0, DONE                #if timer is not at interval, do nothing
@@ -390,7 +392,8 @@ UPDATE_TIMER:
     sw t0, SEVENSEG_OFFSET(tp)  #update display
     li t1, MAX_TIME             #load max time into t1
     bge t0, t1, END_GAME        #if time is greater than alotted time end game
-    
+
+#This subroutine is used to update the seven segment display and return the current value being displayed    
 DONE:
     lw a0, SEVENSEG_OFFSET(tp) #load the current value being displayed on seven segment display
     ret                         #return
